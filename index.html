@@ -57,36 +57,31 @@
     }
 
     .inline { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+
+    details { margin-top: 10px; }
+    summary { cursor: pointer; user-select: none; color:#333; }
+    summary::marker { font-size: 14px; }
+    .small { font-size: 13px; color:#666; margin-top: 4px; }
   </style>
 </head>
 <body>
   <h1>今日の「作るもの」抽選</h1>
   <p class="sub">トグルでカテゴリを選んで、OR条件で抽選します（プリセット＋ユーザーお題を合体）。</p>
 
-  <!-- カテゴリトグル -->
-  <div class="toggles" id="toggles">
-    <label class="toggle" data-tag="家具">
-      <span class="pill"></span>
-      <span>家具</span>
-      <input type="checkbox" checked />
-    </label>
+  <!-- 固定カテゴリ -->
+  <div class="toggles" id="fixedToggles"></div>
 
-    <label class="toggle" data-tag="小物">
-      <span class="pill"></span>
-      <span>小物</span>
-      <input type="checkbox" checked />
-    </label>
+  <!-- 自由タグ（自動生成） -->
+  <details id="otherTagsBox">
+    <summary>その他タグ（自動）</summary>
+    <div class="small">topics.txt / ユーザーお題に書いた新タグがここに出ます。</div>
+    <div class="toggles" id="dynamicToggles"></div>
+  </details>
 
-    <label class="toggle" data-tag="乗り物">
-      <span class="pill"></span>
-      <span>乗り物</span>
-      <input type="checkbox" checked />
-    </label>
-  </div>
-
-  <div class="row">
+  <div class="row" style="margin-top:10px;">
     <button id="drawBtn">抽選する</button>
     <button id="reloadBtn">プリセット再読み込み</button>
+    <button id="clearChecksBtn">チェック全解除</button>
   </div>
 
   <div id="result">読み込み中…</div>
@@ -94,7 +89,7 @@
 
   <div class="note">
     プリセットファイル：<code>topics.txt</code><br/>
-    形式：<code>名前 | タグ1,タグ2</code>（タグは「家具/小物/乗り物」）
+    形式：<code>名前 | タグ1,タグ2</code>（タグは自由に追加OK）
   </div>
 
   <hr>
@@ -109,7 +104,7 @@
   </div>
 
   <div id="editor" style="display:none; margin-top:12px;">
-    <div class="sub">形式：<code>名前 | タグ1,タグ2</code>（例：メガホン | 小物,家具）</div>
+    <div class="sub">形式：<code>名前 | タグ1,タグ2</code>（例：あいうえお | 文字）</div>
     <textarea id="userText" spellcheck="false"></textarea>
 
     <div class="row" style="margin-top:10px;">
