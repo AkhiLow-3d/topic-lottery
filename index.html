@@ -7,6 +7,7 @@
   <style>
     body { font-family: system-ui, sans-serif; max-width: 760px; margin: 40px auto; padding: 0 16px; }
     h1 { font-size: 22px; margin-bottom: 6px; }
+    h2 { font-size: 16px; margin: 0 0 10px; }
     .sub { color: #666; font-size: 13px; margin: 0 0 18px; }
 
     #result { font-size: 30px; margin: 18px 0; padding: 18px; border: 1px solid #ddd; border-radius: 12px; min-height: 44px; display:flex; align-items:center; }
@@ -22,6 +23,7 @@
       padding: 10px 12px; border:1px solid #ccc; border-radius: 999px;
       user-select:none; cursor:pointer; background:#fff;
     }
+    /* input を display:none にしない（クリック不具合回避） */
     .toggle input{
       position:absolute;
       opacity:0;
@@ -29,7 +31,6 @@
       height:1px;
       pointer-events:none;
     }
-
     .pill {
       width: 14px; height: 14px; border-radius: 50%;
       border: 1px solid #bbb; display:inline-block;
@@ -40,12 +41,29 @@
     .note { color:#666; font-size:13px; margin-top:10px; line-height:1.6; }
     .count { font-size: 13px; color:#444; margin-top: 6px; }
     code { background:#f6f6f6; padding:2px 6px; border-radius:6px; }
+
+    hr { margin:24px 0; border:none; border-top:1px solid #eee; }
+
+    textarea {
+      width:100%;
+      height:160px;
+      padding:10px;
+      border-radius:10px;
+      border:1px solid #ccc;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 13px;
+      line-height: 1.5;
+      box-sizing: border-box;
+    }
+
+    .inline { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
   </style>
 </head>
 <body>
   <h1>今日の「作るもの」抽選</h1>
-  <p class="sub">トグルでカテゴリを選んで、OR条件で抽選します。</p>
+  <p class="sub">トグルでカテゴリを選んで、OR条件で抽選します（プリセット＋ユーザーお題を合体）。</p>
 
+  <!-- カテゴリトグル -->
   <div class="toggles" id="toggles">
     <label class="toggle" data-tag="家具">
       <span class="pill"></span>
@@ -68,18 +86,59 @@
 
   <div class="row">
     <button id="drawBtn">抽選する</button>
-    <button id="reloadBtn">リスト再読み込み</button>
+    <button id="reloadBtn">プリセット再読み込み</button>
   </div>
 
   <div id="result">読み込み中…</div>
   <div class="count" id="countInfo"></div>
 
   <div class="note">
-    お題ファイル：<code>topics.txt</code><br/>
+    プリセットファイル：<code>topics.txt</code><br/>
     形式：<code>名前 | タグ1,タグ2</code>（タグは「家具/小物/乗り物」）
+  </div>
+
+  <hr>
+
+  <!-- ユーザーお題編集 -->
+  <h2>ユーザーお題（このブラウザに保存）</h2>
+
+  <div class="row">
+    <button id="openEditorBtn">編集を開く</button>
+    <button id="exportBtn">ユーザーお題を書き出し</button>
+    <button id="clearUserBtn">ユーザーお題を全削除</button>
+  </div>
+
+  <div id="editor" style="display:none; margin-top:12px;">
+    <div class="sub">形式：<code>名前 | タグ1,タグ2</code>（例：メガホン | 小物,家具）</div>
+    <textarea id="userText" spellcheck="false"></textarea>
+
+    <div class="row" style="margin-top:10px;">
+      <button id="saveUserBtn">保存して反映</button>
+      <button id="closeEditorBtn">閉じる</button>
+    </div>
+
+    <div class="note" style="margin-top:8px;">
+      ※ここで保存した分がプリセット（topics.txt）に合体して抽選されます
+    </div>
+  </div>
+
+  <!-- インポート / 置換トグル -->
+  <div class="inline" style="margin-top:12px;">
+    <label class="toggle" id="replaceModeLabel">
+      <span class="pill"></span>
+      <span>インポート時に「置換」する</span>
+      <input type="checkbox" id="replaceMode" />
+    </label>
+
+    <input type="file" id="importFile" accept=".txt" />
+    <button id="importBtn">インポート</button>
+  </div>
+
+  <div class="note" style="margin-top:10px;">
+    置換OFF：既存ユーザーお題に「追加」します（同名は後勝ち）<br/>
+    置換ON：ユーザーお題を「上書き」します
   </div>
 
   <script src="script.js"></script>
 </body>
 </html>
-
