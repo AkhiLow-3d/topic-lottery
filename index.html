@@ -3,28 +3,73 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>お題抽選</title>
+  <title>お題抽選（タグ絞り込み）</title>
   <style>
-    body { font-family: system-ui, sans-serif; max-width: 720px; margin: 40px auto; padding: 0 16px; }
-    h1 { font-size: 22px; }
-    #result { font-size: 28px; margin: 18px 0; padding: 18px; border: 1px solid #ddd; border-radius: 12px; }
-    button { font-size: 16px; padding: 10px 14px; border-radius: 10px; border: 1px solid #ccc; cursor: pointer; }
-    .row { display: flex; gap: 10px; flex-wrap: wrap; }
-    .sub { color: #666; font-size: 13px; margin-top: 10px; }
+    body { font-family: system-ui, sans-serif; max-width: 760px; margin: 40px auto; padding: 0 16px; }
+    h1 { font-size: 22px; margin-bottom: 6px; }
+    .sub { color: #666; font-size: 13px; margin: 0 0 18px; }
+
+    #result { font-size: 30px; margin: 18px 0; padding: 18px; border: 1px solid #ddd; border-radius: 12px; min-height: 44px; display:flex; align-items:center; }
+
+    .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    button { font-size: 16px; padding: 10px 14px; border-radius: 10px; border: 1px solid #ccc; background: #fff; cursor: pointer; }
+    button:active { transform: translateY(1px); }
+
+    /* トグル風 */
+    .toggles { display:flex; gap:10px; flex-wrap:wrap; margin: 10px 0 6px; }
+    .toggle {
+      display:inline-flex; align-items:center; gap:8px;
+      padding: 10px 12px; border:1px solid #ccc; border-radius: 999px;
+      user-select:none; cursor:pointer; background:#fff;
+    }
+    .toggle input { display:none; }
+    .pill {
+      width: 14px; height: 14px; border-radius: 50%;
+      border: 1px solid #bbb; display:inline-block;
+    }
+    .toggle.checked { border-color:#888; }
+    .toggle.checked .pill { background:#222; border-color:#222; }
+
+    .note { color:#666; font-size:13px; margin-top:10px; line-height:1.6; }
+    .count { font-size: 13px; color:#444; margin-top: 6px; }
+    code { background:#f6f6f6; padding:2px 6px; border-radius:6px; }
   </style>
 </head>
 <body>
   <h1>今日の「作るもの」抽選</h1>
+  <p class="sub">トグルでカテゴリを選んで、OR条件で抽選します。</p>
 
-  <div id="result">読み込み中…</div>
+  <div class="toggles" id="toggles">
+    <label class="toggle" data-tag="家具">
+      <span class="pill"></span>
+      <span>家具</span>
+      <input type="checkbox" checked />
+    </label>
+
+    <label class="toggle" data-tag="小物">
+      <span class="pill"></span>
+      <span>小物</span>
+      <input type="checkbox" checked />
+    </label>
+
+    <label class="toggle" data-tag="乗り物">
+      <span class="pill"></span>
+      <span>乗り物</span>
+      <input type="checkbox" checked />
+    </label>
+  </div>
 
   <div class="row">
     <button id="drawBtn">抽選する</button>
     <button id="reloadBtn">リスト再読み込み</button>
   </div>
 
-  <div class="sub">
-    お題リスト: <code>topics.txt</code>（1行1お題）
+  <div id="result">読み込み中…</div>
+  <div class="count" id="countInfo"></div>
+
+  <div class="note">
+    お題ファイル：<code>topics.txt</code><br/>
+    形式：<code>名前 | タグ1,タグ2</code>（タグは「家具/小物/乗り物」）
   </div>
 
   <script src="script.js"></script>
