@@ -103,24 +103,21 @@ function syncToggleVisual(label) {
 function setupToggles() {
   document.querySelectorAll("#toggles .toggle").forEach(label => {
     const checkbox = label.querySelector("input[type=checkbox]");
+    if (!checkbox) return;
+
+    // 初期見た目
     syncToggleVisual(label);
 
+    // クリックで手動トグル（これが一番確実）
     label.addEventListener("click", (e) => {
-      // labelクリックで勝手にトグルされるが、見た目同期を確実にする
-      // クリック直後は checked が反映されていない場合があるので、次フレームで同期
-      requestAnimationFrame(() => {
-        syncToggleVisual(label);
-        updateCountInfo();
-      });
-    });
-
-    // キーボード操作にも対応
-    checkbox?.addEventListener("change", () => {
+      e.preventDefault(); // labelのデフォルト挙動に頼らない
+      checkbox.checked = !checkbox.checked;
       syncToggleVisual(label);
       updateCountInfo();
     });
   });
 }
+
 
 document.getElementById("drawBtn").addEventListener("click", drawOne);
 document.getElementById("reloadBtn").addEventListener("click", () => {
@@ -129,3 +126,4 @@ document.getElementById("reloadBtn").addEventListener("click", () => {
 
 setupToggles();
 loadTopics().catch(err => setResult(err.message));
+
