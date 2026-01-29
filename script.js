@@ -1,10 +1,15 @@
 /** @typedef {{ name: string, tags: string[] }} Topic */
 
-let topics = /** @type {Topic[]} */ ([]);
+let presetTopics = /** @type {Topic[]} */ ([]);
+
+const USER_STORAGE_KEY = "topic_lottery_user_topics_v1";
+
+function setResult(text) {
+  document.getElementById("result").textContent = text;
+}
 
 function parseLine(line) {
   // 例: "メガホン | 小物,家具"
-  // 空行やコメントは呼び出し側で除外済み想定
   const parts = line.split("|").map(s => s.trim());
   const name = parts[0] ?? "";
   const tagsPart = parts[1] ?? "";
@@ -26,25 +31,54 @@ function parseTopics(text) {
   for (const line of lines) {
     const t = parseLine(line);
     if (!t.name) continue;
-    // タグ無しも許可（その場合はどのチェックでも出ない）
     list.push(t);
   }
   return list;
 }
 
-async function loadTopics() {
+async function loadPresetTopics() {
   const res = await fetch("./topics.txt", { cache: "no-store" });
   if (!res.ok) throw new Error("topics.txt を読み込めませんでした");
   const text = await res.text();
-  topics = parseTopics(text);
+  presetTopics = parseTopics(text);
 
   updateCountInfo();
-  setResult(`準備OK（全${topics.length}件）`);
+  const total = mergedTopics().length;
+  setResult(`準備OK（合計${total}件）`);
 }
 
-function setResult(text) {
-  document.getElementById("result").textContent = text;
+/* ---- ユーザーお題（localStorage） ---- */
+
+function exportUserTopicsText() {
+  return localStorage.getItem(USER_STORAGE_KEY) ?? "";
 }
+
+function loadUserTopics() {
+  try {
+    const raw = exportUserTopicsText();
+    if (!raw) return [];
+    return parseTopics(raw);
+  } catch {
+    return [];
+  }
+}
+
+function saveUserTopicsFromText(text) {
+  localStorage.setItem(USER_STORAGE_KEY, text);
+}
+
+function mergedTopics() {
+  // プリセット + ユーザー を合体（同名はユーザー優先）
+  const user = loadUserTopics();
+  const map = new Map();
+
+  for (const t of presetTopics) map.set(t.name, t);
+  for (const t of user) map.set(t.name, t);
+
+  return Array.from(map.values());
+}
+
+/* ---- 絞り込み（OR） ---- */
 
 function getSelectedTags() {
   const selected = [];
@@ -59,19 +93,29 @@ function getSelectedTags() {
 function filterByTags_OR(selectedTags) {
   if (!selectedTags || selectedTags.length === 0) return [];
   const set = new Set(selectedTags);
-  return topics.filter(t => t.tags.some(tag => set.has(tag)));
+  const all = mergedTopics();
+  return all.filter(t => t.tags.some(tag => set.has(tag)));
 }
 
 function updateCountInfo() {
   const selected = getSelectedTags();
   const filtered = filterByTags_OR(selected);
   const info = document.getElementById("countInfo");
+
+  const totalPreset = presetTopics.length;
+  const totalUser = loadUserTopics().length;
+  const totalMerged = mergedTopics().length;
+
   if (selected.length === 0) {
-    info.textContent = "カテゴリが未選択です（1つ以上オンにしてね）";
+    info.textContent = `カテゴリ未選択です（合計 ${totalMerged}件 / プリセット${totalPreset} + ユーザー${totalUser}）`;
   } else {
-    info.textContent = `選択中: ${selected.join(" / ")}　→ 抽選候補: ${filtered.length}件`;
+    info.textContent =
+      `選択中: ${selected.join(" / ")} → 抽選候補: ${filtered.length}件　` +
+      `（合計 ${totalMerged}件 / プリセット${totalPreset} + ユーザー${totalUser}）`;
   }
 }
+
+/* ---- 抽選 ---- */
 
 function drawOne() {
   const selected = getSelectedTags();
@@ -83,7 +127,7 @@ function drawOne() {
     return;
   }
   if (pool.length === 0) {
-    setResult("その組み合わせに該当するお題がありません。topics.txt を増やしてね。");
+    setResult("その組み合わせに該当するお題がありません。topics.txt / ユーザーお題を増やしてね。");
     updateCountInfo();
     return;
   }
@@ -93,24 +137,24 @@ function drawOne() {
   updateCountInfo();
 }
 
-/** トグル風の見た目同期 */
+/* ---- トグル見た目同期 ---- */
+
 function syncToggleVisual(label) {
   const checkbox = label.querySelector("input[type=checkbox]");
   if (!checkbox) return;
   label.classList.toggle("checked", checkbox.checked);
 }
 
-function setupToggles() {
+function setupCategoryToggles() {
   document.querySelectorAll("#toggles .toggle").forEach(label => {
     const checkbox = label.querySelector("input[type=checkbox]");
     if (!checkbox) return;
 
-    // 初期見た目
     syncToggleVisual(label);
 
-    // クリックで手動トグル（これが一番確実）
+    // 手動トグル（確実に動く）
     label.addEventListener("click", (e) => {
-      e.preventDefault(); // labelのデフォルト挙動に頼らない
+      e.preventDefault();
       checkbox.checked = !checkbox.checked;
       syncToggleVisual(label);
       updateCountInfo();
@@ -118,12 +162,122 @@ function setupToggles() {
   });
 }
 
+/* ---- ダウンロード（エクスポート） ---- */
+
+function downloadText(filename, text) {
+  const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+/* ---- ユーザーエディタ ---- */
+
+function setupUserEditor() {
+  const editor = document.getElementById("editor");
+  const userText = document.getElementById("userText");
+
+  document.getElementById("openEditorBtn").addEventListener("click", () => {
+    editor.style.display = "block";
+    userText.value = exportUserTopicsText();
+  });
+
+  document.getElementById("closeEditorBtn").addEventListener("click", () => {
+    editor.style.display = "none";
+  });
+
+  document.getElementById("saveUserBtn").addEventListener("click", () => {
+    const text = userText.value ?? "";
+    const parsed = parseTopics(text);
+
+    // 空はOK（全削除と同義）
+    if (text.trim().length > 0 && parsed.length === 0) {
+      setResult("保存できません：形式が崩れてるかも（例：メガホン | 小物,家具）");
+      return;
+    }
+
+    saveUserTopicsFromText(text);
+    setResult(`ユーザーお題を保存しました（${parsed.length}件）`);
+    updateCountInfo();
+  });
+
+  document.getElementById("exportBtn").addEventListener("click", () => {
+    const text = exportUserTopicsText();
+    downloadText("my_topics.txt", text);
+  });
+
+  document.getElementById("clearUserBtn").addEventListener("click", () => {
+    localStorage.removeItem(USER_STORAGE_KEY);
+    userText.value = "";
+    setResult("ユーザーお題を全削除しました");
+    updateCountInfo();
+  });
+
+  // 置換トグルをトグル風に
+  const replaceLabel = document.getElementById("replaceModeLabel");
+  const replaceCb = document.getElementById("replaceMode");
+  const syncReplace = () => replaceLabel.classList.toggle("checked", replaceCb.checked);
+  syncReplace();
+  replaceLabel.addEventListener("click", (e) => {
+    e.preventDefault();
+    replaceCb.checked = !replaceCb.checked;
+    syncReplace();
+  });
+
+  // インポート
+  document.getElementById("importBtn").addEventListener("click", async () => {
+    const fileInput = document.getElementById("importFile");
+    const replace = replaceCb.checked;
+    const file = fileInput.files?.[0];
+
+    if (!file) {
+      setResult("インポートするtxtファイルを選んでね");
+      return;
+    }
+
+    const text = await file.text();
+    const imported = parseTopics(text);
+
+    if (imported.length === 0) {
+      setResult("インポート失敗：中身が空か、形式が違うかも");
+      return;
+    }
+
+    if (replace) {
+      saveUserTopicsFromText(text);
+      setResult(`インポート（置換）しました（${imported.length}件）`);
+    } else {
+      // 追加（同名は後勝ち）
+      const current = loadUserTopics();
+      const map = new Map();
+      for (const t of current) map.set(t.name, t);
+      for (const t of imported) map.set(t.name, t);
+
+      const mergedText = Array.from(map.values())
+        .map(t => `${t.name} | ${t.tags.join(",")}`)
+        .join("\n");
+
+      saveUserTopicsFromText(mergedText);
+      setResult(`インポート（追加）しました（合体後 ${map.size}件）`);
+    }
+
+    updateCountInfo();
+  });
+}
+
+/* ---- 初期化 ---- */
 
 document.getElementById("drawBtn").addEventListener("click", drawOne);
 document.getElementById("reloadBtn").addEventListener("click", () => {
-  loadTopics().catch(err => setResult(err.message));
+  loadPresetTopics().catch(err => setResult(err.message));
 });
 
-setupToggles();
-loadTopics().catch(err => setResult(err.message));
+setupCategoryToggles();
+setupUserEditor();
 
+loadPresetTopics().catch(err => setResult(err.message));
