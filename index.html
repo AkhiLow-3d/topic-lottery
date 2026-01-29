@@ -22,7 +22,14 @@
       padding: 10px 12px; border:1px solid #ccc; border-radius: 999px;
       user-select:none; cursor:pointer; background:#fff;
     }
-    .toggle input { display:none; }
+    .toggle input{
+      position:absolute;
+      opacity:0;
+      width:1px;
+      height:1px;
+      pointer-events:none;
+    }
+
     .pill {
       width: 14px; height: 14px; border-radius: 50%;
       border: 1px solid #bbb; display:inline-block;
@@ -75,3 +82,4 @@
   <script src="script.js"></script>
 </body>
 </html>
+
