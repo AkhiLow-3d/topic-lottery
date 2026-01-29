@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>お題抽選</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 720px; margin: 40px auto; padding: 0 16px; }
+    h1 { font-size: 22px; }
+    #result { font-size: 28px; margin: 18px 0; padding: 18px; border: 1px solid #ddd; border-radius: 12px; }
+    button { font-size: 16px; padding: 10px 14px; border-radius: 10px; border: 1px solid #ccc; cursor: pointer; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .sub { color: #666; font-size: 13px; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <h1>今日の「作るもの」抽選</h1>
+
+  <div id="result">読み込み中…</div>
+
+  <div class="row">
+    <button id="drawBtn">抽選する</button>
+    <button id="reloadBtn">リスト再読み込み</button>
+  </div>
+
+  <div class="sub">
+    お題リスト: <code>topics.txt</code>（1行1お題）
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
